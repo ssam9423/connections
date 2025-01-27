@@ -19,26 +19,45 @@
 #       If set has 3 correct, let user know
 #       If set is fully correct, color & move to top of grid
 
-
 # Import
 import numpy as np
+import pandas as pd
 import random
 import pygame
 import sys
 sys.path.append('Classes')
 from pygame_button import Button
 
+# Initialize
 pygame.init()
 random.seed()
+
+# Maximum Number of Allowed Guesses
+max_guess = 4
+
+# Sort Cards from CSV File
+csv_name = "connections.csv"
+c_set = pd.read_csv(csv_name, skiprows=1, header=None)
+yellows = np.empty((0, 4), dtype='<U10')
+greens = np.empty((0, 4), dtype='<U10')
+blues = np.empty((0, 4), dtype='<U10')
+purples = np.empty((0, 4), dtype='<U10')
+
+for i in range(c_set.shape[0]):
+    if c_set.iloc[i][0].lower() == 'yellow':
+        yellows = np.vstack([yellows, c_set.iloc[i, 2:]])
+    elif c_set.iloc[i][0].lower() == 'green':
+        greens = np.vstack([greens, c_set.iloc[i, 2:]])
+    elif c_set.iloc[i][0].lower() == 'blue':
+        blues = np.vstack([blues, c_set.iloc[i, 2:]])
+    else:
+        purples = np.vstack([purples, c_set.iloc[i, 2:]])
 
 # Screen, Cards, Buttons Variables
 s_width = 600
 s_height = 700
 screen = pygame.display.set_mode((s_width, s_height))
 pygame.display.set_caption('Connections')
-
-# Maximum # Allowed Guesses
-max_guess = 6
 
 spacing = s_width / 40
 header_space = s_width / 10
@@ -53,11 +72,7 @@ b_width = int((s_width - spacing*4) / 3)
 b_height = s_height - b_y_pos - spacing
 g_y_pos = header_space + spacing*(11/2) + c_height*4
 
-yellow = np.array(['bubble', 'globe', 'marble', 'pearl'])
-green = np.array(['foam', 'froth', 'head', 'lather'])
-blue = np.array(['build', 'grow', 'mount', 'swell'])
-purple = np.array(['aces', 'neato', 'nifty', 'keen'])
-
+# Color Variables
 white_color = (255, 255, 252)
 yellow_color = (246, 209, 127)
 green_color = (171, 190, 132)
@@ -73,8 +88,9 @@ hover_color = brown_color
 disable_color = dark_brown_color
 screen_color = white_color
 
+# Global Variables
 # Unshuffled Words: Numpy Array (string)
-connections = np.concatenate((yellow, green, blue, purple))
+connections = np.array([])
 # Unshuffled cards: Numpy Array (Button)
 cards = np.array([])
 # Shuffled Index of Cards: List (int)
@@ -112,6 +128,12 @@ show_guesses = Button(screen, name='Show Guesses',
                       bg_color=bg_color, t_color=disable_color,
                       hover_bg_color=hover_color, hover_t_color=screen_color,
                       disable_bg_color=disable_color, disable_t_color=screen_color)
+play_again = Button(screen, name='Play Again', 
+                    x_pos=(spacing*2 + b_width/2), y_pos=b_y_pos,
+                    width=b_width*2, height=b_height,
+                    bg_color=bg_color, t_color=disable_color,
+                    hover_bg_color=hover_color, hover_t_color=screen_color,
+                    disable_bg_color=disable_color, disable_t_color=screen_color)
 
 # Header
 header = Button(screen, name='Connections', y_pos=h_y_pos,
@@ -142,12 +164,20 @@ game_over = Button(screen, name='Game Over',
                    y_pos=(header_space),
                    width=s_width, height=(spacing*2),
                    disable_bg_color=screen_color,
-                   disable_t_color=screen_color,
+                   disable_t_color=hover_color,
                    clickable=False)
+
+# Select Card Sets from each difficulty level randomly
+def select_cards():
+    y = yellows[random.randint(0, len(yellows)-1)]
+    g = greens[random.randint(0, len(greens)-1)]
+    b = blues[random.randint(0, len(blues)-1)]
+    p = purples[random.randint(0, len(purples)-1)]
+    return np.concatenate((y, g, b, p))
 
 # Create connections cards -> then shuffle
 def create_cards():
-    global screen, cards
+    global screen, cards, connections
     for card_name in connections:
         name = card_name
         card = Button(screen, name=name, width=c_width, height=c_height,
@@ -155,7 +185,21 @@ def create_cards():
                       t_color=disable_color, hover_t_color=screen_color,
                       disable_bg_color=disable_color, disable_t_color=screen_color)
         cards = np.append(cards, card)
+    resize_font()
     shuffle_order()
+
+# Resize Font to Smallest Auto Font of all Cards
+def resize_font():
+    global cards
+    smallest_font = cards[0].font_size
+    # Determine Smallest Auto Font Size
+    for card in cards:
+        card.auto_font_size()
+        if card.font_size < smallest_font:
+            smallest_font = card.font_size
+    # Resize Font on all Cards to Smallest Auto Font Size
+    for card in cards:
+        card.update_font_size(smallest_font)
 
 # Shuffles order of incorrect cards -> then update position
 def shuffle_order():
@@ -213,7 +257,6 @@ def check(cur_guess):
         g_color_inds = np.vstack([g_color_inds, guess_ci])
         update_guess_num()
         deselect_all()
-    return 0
 
 # Guess is correct
 #   color_ind: int - index of color
@@ -259,17 +302,16 @@ def end_game():
     for i in range(int(len(not_guessed)/4)):
         correct((int(not_guessed[i*4]/4)%4), 
                 not_guessed[i*4:((i+1)*4)])
-    game_over.disable_t_color = hover_color
     return 0
 
 # Creates cards representing the user's history of guesses
 def create_guesses():
     global guess_cards
     # Maximum number of rows is maximum # of guesses + 4 correct guesses
-    max_num = 4 + max_guess
+    max_num = 3 + max_guess
     gc_width = int((s_width - (c_width*2 + spacing*3)) / 4)
     gc_height = int((s_height -  
-                     (h_height + spacing*(3+max_num))) / max_num)
+                     (h_height + spacing*(3+max_num) + b_height)) / max_num)
     # Create Guess Color Cards
     for gc_row in range(len(g_color_inds)):
         for gc_col in range(4):
@@ -283,6 +325,27 @@ def create_guesses():
                                 clickable = False)
             guess_cards = np.append(guess_cards, guess_card)
 
+def restart():
+    global connections, cards, order
+    global guesses, g_color_inds, guess_cards, guess
+    global correct_inds, end_screen
+    # Get New Yellow, Green, Blue, Purple Cards
+    connections = select_cards()
+    # Reset Global Variables
+    cards = np.array([])
+    order = list(range(16))
+    guesses = np.empty((0,4), int)
+    g_color_inds = np.empty((0,4), int)
+    guess_cards = np.array([])
+    guess = np.array([])
+    correct_inds = np.array([])
+    # Reset Buttons
+    show_guesses.clickable = False
+    end_screen = False
+    # Create New Cards
+    create_cards()
+    update_guess_num()
+
 # Start Program 
 game_on = True
 end_screen = False
@@ -291,8 +354,7 @@ header.auto_font_size()
 guess_subhead.auto_font_size()
 already_guessed.auto_font_size()
 of_a_kind_3.auto_font_size()
-create_cards()
-update_guess_num()
+restart()
 
 while game_on:
     for event in pygame.event.get():
@@ -300,21 +362,25 @@ while game_on:
         # Check to Quit Game 
         if event.type == pygame.QUIT:
             game_on = False
-        # Check Cards clicked
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            # Shuffle, Deselect, Confirm Buttons Clicked
-            if shuffle.rect.collidepoint(event.pos):
-                shuffle_order()
-            elif (deselect.rect.collidepoint(event.pos) and
-                  deselect.clickable):
-                deselect_all()
-            elif (confirm.rect.collidepoint(event.pos) and
-                  confirm.clickable):
-                check(guess)
-            elif (show_guesses.rect.collidepoint(event.pos)):
-                end_screen = True
-                create_guesses()
+            # During End Screen
+            if end_screen:
+                if (play_again.rect.collidepoint(event.pos)):
+                    restart()
+            # During Play Screen
             else:
+                if shuffle.rect.collidepoint(event.pos):
+                    shuffle_order()
+                if (deselect.rect.collidepoint(event.pos) and
+                    deselect.clickable):
+                    deselect_all()
+                if (confirm.rect.collidepoint(event.pos) and
+                    confirm.clickable):
+                    check(guess)
+                if (show_guesses.rect.collidepoint(event.pos) and 
+                    show_guesses.clickable):
+                    end_screen = True
+                    create_guesses()
                 for i in range(16):
                     # If click on card & not already correct
                     if (cards[i].rect.collidepoint(event.pos) and 
@@ -347,10 +413,11 @@ while game_on:
         deselect.clickable = False
 
     # Determines if on Game Screen or End Screen
-    # Shows End Screen
+    # Shows End Screen - User's guesses
     if end_screen:
         show_cards(pygame.mouse.get_pos())
         game_over.show(pygame.mouse.get_pos())
+        play_again.show(pygame.mouse.get_pos())
     else:
         # Show Buttons & Guesses Left if still guesses left
         if (guesses_left and (len(correct_inds) < 16)):
@@ -358,7 +425,9 @@ while game_on:
             shuffle.show(pygame.mouse.get_pos())
             deselect.show(pygame.mouse.get_pos())
             guess_subhead.show(pygame.mouse.get_pos())
+        # No Guesses left or all guessed correctly
         else:
+            show_guesses.clickable = True
             show_guesses.show(pygame.mouse.get_pos())
             game_over.show(pygame.mouse.get_pos())
         # Show cards
