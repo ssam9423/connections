@@ -20,14 +20,11 @@
 #       If set is fully correct, color & move to top of grid
 
 # Import
+from pygame_button import Button
 import random
-import sys
 import numpy as np
 import pandas as pd
 import pygame
-
-sys.path.append('Classes')
-from pygame_button import Button
 
 # Initialize
 pygame.init()
