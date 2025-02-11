@@ -20,11 +20,14 @@
 #       If set is fully correct, color & move to top of grid
 
 # Import
-from pygame_button import Button
 import random
+import sys
 import numpy as np
 import pandas as pd
 import pygame
+
+sys.path.append('Classes')
+from pygame_button import Button
 
 # Initialize
 pygame.init()
@@ -298,9 +301,9 @@ def end_game():
     not_guessed = np.setdiff1d(order, correct_inds)
     not_guessed = np.sort(not_guessed)
     # Shows Correct Answers for each set
-    for set in range(int(len(not_guessed)/4)):
-        correct((int(not_guessed[set*4]/4)%4),
-                not_guessed[set*4:((set+1)*4)])
+    for diff_set in range(int(len(not_guessed)/4)):
+        correct((int(not_guessed[diff_set*4]/4)%4),
+                not_guessed[diff_set*4:((diff_set+1)*4)])
     return 0
 
 def create_guesses():
@@ -329,6 +332,7 @@ def restart():
     global connections, cards, order
     global guesses, g_color_inds, guess_cards, guess
     global correct_inds, end_screen, guesses_left
+    global already_guessed, of_a_kind_3
     # Get New Yellow, Green, Blue, Purple Cards
     connections = select_cards()
     # Reset Global Variables
@@ -343,6 +347,9 @@ def restart():
     show_guesses.clickable = False
     end_screen = False
     guesses_left = True
+    # Reset Hints
+    already_guessed.disable_t_color = screen_color
+    of_a_kind_3.disable_t_color = screen_color
     # Create New Cards
     create_cards()
     update_guess_num()
