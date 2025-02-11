@@ -11,6 +11,8 @@ If the set contains 3 of 4 cards that belong to the same set, the screen will pr
 Once all guesses have been depleated, or the User guesses all sets correctly, the correct answers will be displayed and the User has the option to view the history of guesses.
 After the User views their history, they can choose to `Play Again` in which a new set of cards will be created randomly.
 
+<img src="https://github.com/user-attachments/assets/3e910519-c2ae-43e0-a26d-06ce7a92185a" width="300" height="360" class="center">
+
 ## CSV Requirements
 The CSV file requires 6 columns:
 - `Difficulty` - The color representing the difficulty of the set (`yellow`, `green`, `blue`, `purple`)
