@@ -8,7 +8,7 @@ In the event that the User guesses correctly, the cards will become the color as
 If the User guesses incorrectly, the will cards will be deselected and the number of remaining guesses will decrease by 1.
 However, if the User has already made the guess before, the screen will display that the User has `Already Guessed` the set.
 If the set contains 3 of 4 cards that belong to the same set, the screen will provide the hint `3 of the 4 are correct`.
-Once all guesses have been depleated, or the User guesses all sets correctly, the correct answers will be displayed and the User has the option to view the history of guesses.
+Once all guesses have been depleted, or the User guesses all sets correctly, the correct answers will be displayed and the User has the option to view the history of guesses.
 After the User views their history, they can choose to `Play Again` in which a new set of cards will be created randomly.
 
 <img src="https://github.com/user-attachments/assets/3e910519-c2ae-43e0-a26d-06ce7a92185a" width="300" height="360" class="center">
